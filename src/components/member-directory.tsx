@@ -31,7 +31,7 @@ export function MemberDirectory() {
               <p className="text-sm text-gray-500">{profile.email}</p>
             </div>
           </div>
-          <Link href={`/chat?recipient=${profile.full_name}`}>
+          <Link href={`/private?recipient=${profile.full_name}`}>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

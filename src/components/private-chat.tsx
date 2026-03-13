@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSearchParams } from 'next/navigation'
 
 const initialConversations = [
   {
@@ -22,9 +23,20 @@ const initialConversations = [
 ]
 
 export function PrivateChat() {
+  const searchParams = useSearchParams()
+  const recipient = searchParams.get('recipient')
   const [conversations, setConversations] = useState(initialConversations)
   const [activeId, setActiveId] = useState(1)
   const [newMessage, setNewMessage] = useState('')
+
+  useEffect(() => {
+    if (recipient) {
+      const conv = conversations.find(c => c.name.toLowerCase() === recipient.toLowerCase())
+      if (conv) {
+        setActiveId(conv.id)
+      }
+    }
+  }, [recipient, conversations])
 
   const activeChat = conversations.find(c => c.id === activeId)
 
