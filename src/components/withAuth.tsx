@@ -1,24 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
 
+/**
+ * withAuth - Temporarily disabled for clean build without Supabase
+ * Reverts to a simple pass-through HOC as requested to remove login logic.
+ */
 export function withAuth(Component: React.ComponentType<any>) {
   return function AuthenticatedComponent(props: any) {
-    const supabase = createClient()
-    const router = useRouter()
-
-    useEffect(() => {
-      const checkUser = async () => {
-        const { data } = await supabase.auth.getUser()
-        if (!data.user) {
-          router.push('/login')
-        }
-      }
-      checkUser()
-    }, [supabase, router])
-
+    // Auth logic removed as requested for the clean look and no-docker setup
     return <Component {...props} />
   }
 }
