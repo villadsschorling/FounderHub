@@ -1,26 +1,133 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds — LIGHT */
+  --background: #fdf8f3;          /* warm off-white page background */
+  --background-surface: #ffffff;  /* pure white cards */
+  --background-overlay: #f5ece0;  /* slightly warmer panels/sidebars */
+
+  /* Text — readable on light */
+  --text-on-dark: #ffffff;        /* white text only on dark accent elements */
+  --text-primary: #1a0f05;        /* near-black for headings and body */
+  --text-secondary: #7c5c3e;      /* warm brown for muted text */
+  --text-tertiary: rgba(124, 92, 62, 0.7);
+
+  /* Borders */
+  --border-subtle: rgba(180, 130, 90, 0.25);
+
+  /* Accents */
+  --accent-primary: #e85d04;
+  --accent-danger: #dc2f02;
+  --accent-warm: #f4a261;
+  --accent-gradient: linear-gradient(
+    135deg,
+    #e85d04 0%,
+    #dc2f02 45%,
+    #f4a261 100%
+  );
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-foreground: var(--text-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* App shell / page background — NO dark radial gradients */
+.app-shell {
+  background-color: #fdf8f3;
+  min-height: 100vh;
+}
+
+/* High-contrast cards */
+.glass-panel {
+  border-radius: 24px;
+  background: var(--background-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 16px rgba(100, 50, 10, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.glass-panel:hover {
+  transform: translateY(-5px);
+}
+
+/* Primary button */
+.btn-primary {
+  padding: 12px 32px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: var(--accent-gradient);
+  color: var(--text-on-dark);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(100, 50, 10, 0.12);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 6px 20px rgba(100, 50, 10, 0.15);
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* Nav */
+.nav-link {
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--accent-primary);
+  text-shadow: none;
+}
+
+/* Pills */
+.pill-badge {
+  padding: 6px 16px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: 999px;
+  background: rgba(244, 162, 97, 0.2);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Inputs */
+.input-shell {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-surface);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-shell:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 16px rgba(100, 50, 10, 0.12);
+}
+
+/* Charts */
+.chart-surface {
+  background: var(--background-surface);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(100, 50, 10, 0.08);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--accent-primary);
+  color: var(--text-on-dark);
 }
