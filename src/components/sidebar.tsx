@@ -8,6 +8,10 @@ const navItems = [
   { href: "/", label: "Benchmarking" },
   { href: "/war-room", label: "War Room" },
   { href: "/directory", label: "Member Directory" },
+  { href: "/tools", label: "Tools" },
+  { href: "/money", label: "Money Affairs" },
+  { href: "/social", label: "Social" },
+  { href: "/private", label: "Private Chat" },
 ];
 
 export function Sidebar({ children }: { children: ReactNode }) {
