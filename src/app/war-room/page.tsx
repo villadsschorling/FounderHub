@@ -2,70 +2,118 @@
 
 import { Sidebar } from "@/components/sidebar";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase";
 
 type Post = {
-  id: number;
-  author: string;
+  id: string;
+  author_id: string;
   title: string;
   content: string;
-  timestamp: string;
-  comments: any[];
+  created_at: string;
+  profiles: {
+    full_name: string;
+  };
+  comments: { count: number }[];
 };
 
-let seedPosts: Post[] = [
-  {
-    id: 1,
-    author: "Acme Analytics",
-    title: "Pricing Strategy Teardown",
-    content:
-      "We pushed pricing from $39 to $59 and saw activation jump once onboarding was simplified. Happy to share the onboarding flow.",
-    timestamp: "09:12",
-    comments: [],
-  },
-  {
-    id: 2,
-    author: "Northbound Labs",
-    title: "Founder Newsletter Conversion Rates",
-    content:
-      "Anyone running a founder newsletter and tying it back to product usage? Curious what open → signup conversion you’re seeing.",
-    timestamp: "09:19",
-    comments: [],
-  },
-];
-
 function WarRoomContent() {
-  const [posts, setPosts] = useState<Post[]>(seedPosts);
+  const supabase = createClient();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  async function fetchPosts() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        profiles:author_id (full_name),
+        comments (id)
+      `)
+      .eq('category', 'war-room')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching posts:', error);
+    } else {
+      // Map comments to count for display
+      const mappedPosts = (data || []).map((post: any) => ({
+        ...post,
+        commentCount: post.comments?.length || 0
+      }));
+      setPosts(mappedPosts);
+    }
+    setLoading(false);
+  }
+
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPostTitle.trim() === "" || newPostContent.trim() === "") return;
 
-    const newPost = {
-      id: Date.now(),
-      author: "You",
-      title: newPostTitle,
-      content: newPostContent,
-      timestamp: new Date().toLocaleTimeString(),
-      comments: [],
-    };
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      console.error('Auth error:', authError);
+      alert("You must be logged in to create a post.");
+      return;
+    }
+    if (!user) {
+      alert("You must be logged in to create a post.");
+      return;
+    }
 
-    const updatedPosts = [newPost, ...posts];
-    setPosts(updatedPosts);
-    seedPosts = updatedPosts; // Hack to update seed data
+    // Get current user profile ID
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
 
-    setNewPostTitle("");
-    setNewPostContent("");
+    if (profileError) {
+      console.error('Profile error:', profileError);
+      alert("Could not find your profile. Please try logging out and back in.");
+      return;
+    }
+    if (!profile) {
+      alert("Profile not found. Please complete your profile setup.");
+      return;
+    }
+
+    const { data: insertedPost, error } = await supabase
+      .from('posts')
+      .insert([
+        {
+          author_id: profile.id,
+          title: newPostTitle,
+          content: newPostContent,
+          category: 'war-room'
+        }
+      ])
+      .select();
+
+    if (error) {
+      console.error('Error creating post:', error);
+      alert(`Failed to create post: ${error.message}`);
+    } else {
+      console.log('Post created successfully:', insertedPost);
+      setNewPostTitle("");
+      setNewPostContent("");
+      fetchPosts();
+    }
   };
 
   return (
-    <div className="flex h-full flex-col gap-8">
+    <div className="flex h-full flex-col gap-8 max-w-5xl mx-auto pb-20">
       <header className="flex items-baseline justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-[-0.02em] text-[color:var(--text-primary)]">
+          <h1 className="text-3xl font-bold tracking-tight text-[color:var(--text-primary)]">
             War Room
           </h1>
           <p className="mt-2 max-w-xl text-sm text-[color:var(--text-secondary)]">
@@ -74,57 +122,82 @@ function WarRoomContent() {
         </div>
       </header>
 
-      <div className="mb-8">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-panel p-6 border border-[color:var(--border-subtle)] bg-[color:var(--background-overlay)]"
+      >
+        <h3 className="text-sm font-semibold text-[color:var(--text-primary)] mb-4">Initialize a new discussion</h3>
         <form onSubmit={handleCreatePost} className="space-y-4">
           <input
             type="text"
             value={newPostTitle}
             onChange={(e) => setNewPostTitle(e.target.value)}
-            placeholder="Post title"
-            className="w-full rounded-md border bg-transparent p-2"
+            placeholder="Subject line..."
+            className="w-full bg-transparent border border-[color:var(--border-subtle)] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--accent-primary)] text-[color:var(--text-primary)]"
           />
           <textarea
             value={newPostContent}
             onChange={(e) => setNewPostContent(e.target.value)}
-            placeholder="What's on your mind?"
-            className="w-full rounded-md border bg-transparent p-2"
+            placeholder="What's on your mind? Share an insight, strategy, or a problem..."
+            className="w-full bg-transparent border border-[color:var(--border-subtle)] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--accent-primary)] text-[color:var(--text-primary)] h-32 resize-none"
           />
-          <button type="submit" className="rounded-md bg-blue-500 px-4 py-2 text-white">
-            Create Post
-          </button>
+          <div className="flex justify-end">
+            <button type="submit" className="btn-primary px-8 py-2.5 rounded-lg text-sm font-bold shadow-lg hover:shadow-xl transition-all">
+              Broadcast to Hub
+            </button>
+          </div>
         </form>
-      </div>
+      </motion.div>
 
-      <section className="grid gap-6">
-        {posts.map((post) => (
-          <Link key={post.id} href={`/war-room/${post.id}`}>
-            <motion.div
-              whileHover={{ y: -2, scale: 1.005 }}
-              transition={{ type: "spring", stiffness: 260, damping: 22 }}
-              className="glass-panel p-5"
-            >
-              <div className="flex items-center justify-between text-xs text-[color:var(--text-secondary)]">
-                <span>{post.author}</span>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    {post.comments.length}
-                  </span>
-                  <span>{post.timestamp}</span>
-                </div>
-              </div>
-              <h2 className="mt-4 text-lg font-semibold text-[color:var(--text-primary)]">
-                {post.title}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                {post.content}
-              </p>
-            </motion.div>
-          </Link>
-        ))}
-      </section>
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--accent-primary)] border-t-transparent" />
+        </div>
+      ) : (
+        <section className="grid gap-6">
+          {posts.length === 0 ? (
+            <div className="text-center py-20 border-2 border-dashed border-[color:var(--border-subtle)] rounded-2xl">
+              <p className="text-[color:var(--text-tertiary)] italic">No broadcasts yet. Be the first to initiate a discussion.</p>
+            </div>
+          ) : (
+            posts.map((post: any) => (
+              <Link key={post.id} href={`/war-room/${post.id}`}>
+                <motion.div
+                  whileHover={{ y: -4, borderColor: 'var(--accent-primary)' }}
+                  transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                  className="glass-panel p-6 border border-[color:var(--border-subtle)] bg-[color:var(--background-overlay)] transition-colors"
+                >
+                  <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold text-[color:var(--text-tertiary)] mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-primary)]" />
+                      <span>{post.profiles?.full_name || 'Anonymous Founder'}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1.5">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        {post.commentCount}
+                      </span>
+                      <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-bold text-[color:var(--text-primary)] mb-3">
+                    {post.title}
+                  </h2>
+                  <p className="text-sm leading-relaxed text-[color:var(--text-secondary)] line-clamp-3">
+                    {post.content}
+                  </p>
+                  <div className="mt-6 flex justify-end">
+                    <span className="text-[color:var(--accent-primary)] text-xs font-bold hover:underline">Open Intel →</span>
+                  </div>
+                </motion.div>
+              </Link>
+            ))
+          )}
+        </section>
+      )}
     </div>
   );
 }

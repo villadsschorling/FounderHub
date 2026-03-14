@@ -101,7 +101,7 @@ export function MemberDirectory() {
               </p>
             </div>
           </div>
-          <Link href={`/private?recipient=${profile.full_name || 'Anonymous'}`}>
+          <Link href={`/private?recipient=${profile.id}`}>
             <motion.button
               whileHover={{ scale: 1.05, backgroundColor: 'var(--accent-primary)', color: 'white' }}
               whileTap={{ scale: 0.95 }}

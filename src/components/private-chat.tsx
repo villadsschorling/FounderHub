@@ -52,15 +52,19 @@ export function PrivateChat() {
           .eq('is_read', false)
 
         const counts: Record<string, number> = {}
-        unreadData?.forEach(m => {
+        unreadData?.forEach((m: any) => {
           counts[m.sender_id] = (counts[m.sender_id] || 0) + 1
         })
         setUnreadCounts(counts)
       }
 
-      // If recipient in URL, select them
-      if (recipientName && allProfiles) {
-        const target = allProfiles.find(p => p.full_name?.toLowerCase() === recipientName.toLowerCase())
+      // If recipient in URL, select them (check both ID and name)
+      const recipientParam = searchParams.get('recipient')
+      if (recipientParam && allProfiles) {
+        const target = allProfiles.find((p: any) => 
+          p.id === recipientParam || 
+          p.full_name?.toLowerCase() === recipientParam.toLowerCase()
+        )
         if (target) {
           setActiveId(target.id)
         }
@@ -69,7 +73,7 @@ export function PrivateChat() {
     }
 
     initChat()
-  }, [supabase, recipientName])
+  }, [supabase, searchParams])
 
   // 2. Fetch messages when active recipient changes
   useEffect(() => {
@@ -90,12 +94,12 @@ export function PrivateChat() {
         await supabase
           .from('private_messages')
           .update({ is_read: true })
-          .eq('sender_id', activeRecipientId)
-          .eq('recipient_id', currentUserProfile.id)
+          .eq('sender_id', activeRecipientId!)
+          .eq('recipient_id', currentUserProfile!.id)
           .eq('is_read', false)
         
         // Update local unread counts
-        setUnreadCounts(prev => ({ ...prev, [activeRecipientId]: 0 }))
+        setUnreadCounts(prev => ({ ...prev, [activeRecipientId!]: 0 }))
       }
     }
 
@@ -109,7 +113,7 @@ export function PrivateChat() {
         schema: 'public',
         table: 'private_messages',
         filter: `recipient_id=eq.${currentUserProfile.id}`, 
-      }, (payload) => {
+      }, (payload: any) => {
         // If message is from the currently active person, add it and mark read
         if (payload.new.sender_id === activeRecipientId) {
           setMessages(prev => [...prev, payload.new])

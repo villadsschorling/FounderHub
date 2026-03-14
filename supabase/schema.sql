@@ -50,14 +50,82 @@ create table if not exists public.private_messages (
   created_at timestamptz default now()
 );
 
+create table if not exists public.posts (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  content text not null,
+  category text not null, -- 'war-room', 'money', 'social'
+  subcategory text, -- e.g., 'opportunities', 'meetings'
+  created_at timestamptz default now()
+);
+
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  author_id uuid not null references public.profiles(id) on delete cascade,
+  content text not null,
+  created_at timestamptz default now()
+);
+
 -- 2. Enable RLS
 alter table public.profiles enable row level security;
 alter table public.companies enable row level security;
 alter table public.metrics enable row level security;
 alter table public.messages enable row level security;
 alter table public.private_messages enable row level security;
+alter table public.posts enable row level security;
+alter table public.comments enable row level security;
 
 -- 3. Setup Policies (DROP IF EXISTS before CREATE to avoid "already exists" errors)
+
+-- Posts
+drop policy if exists "Authenticated can view all posts" on public.posts;
+create policy "Authenticated can view all posts"
+  on public.posts for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated can insert own posts" on public.posts;
+create policy "Authenticated can insert own posts"
+  on public.posts for insert
+  with check (
+    auth.role() = 'authenticated' AND
+    author_id in (select id from public.profiles where user_id = auth.uid())
+  );
+
+drop policy if exists "Authenticated can update own posts" on public.posts;
+create policy "Authenticated can update own posts"
+  on public.posts for update
+  using (author_id in (select id from public.profiles where user_id = auth.uid()));
+
+drop policy if exists "Authenticated can delete own posts" on public.posts;
+create policy "Authenticated can delete own posts"
+  on public.posts for delete
+  using (author_id in (select id from public.profiles where user_id = auth.uid()));
+
+-- Comments
+drop policy if exists "Authenticated can view all comments" on public.comments;
+create policy "Authenticated can view all comments"
+  on public.comments for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated can insert own comments" on public.comments;
+create policy "Authenticated can insert own comments"
+  on public.comments for insert
+  with check (
+    auth.role() = 'authenticated' AND
+    author_id in (select id from public.profiles where user_id = auth.uid())
+  );
+
+drop policy if exists "Authenticated can update own comments" on public.comments;
+create policy "Authenticated can update own comments"
+  on public.comments for update
+  using (author_id in (select id from public.profiles where user_id = auth.uid()));
+
+drop policy if exists "Authenticated can delete own comments" on public.comments;
+create policy "Authenticated can delete own comments"
+  on public.comments for delete
+  using (author_id in (select id from public.profiles where user_id = auth.uid()));
 
 -- Profiles
 drop policy if exists "Individuals can view own profile" on public.profiles;

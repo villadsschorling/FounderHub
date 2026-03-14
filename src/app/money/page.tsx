@@ -4,11 +4,29 @@ import { Sidebar } from "@/components/sidebar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { moneyPosts, Post, MoneySection } from "@/lib/data";
+import { createClient } from "@/lib/supabase";
+
+type Post = {
+  id: string;
+  author_id: string;
+  title: string;
+  content: string;
+  category: string;
+  subcategory: string;
+  created_at: string;
+  profiles: {
+    full_name: string;
+  };
+  comments: { count: number }[];
+};
+
+type MoneySection = "opportunities" | "savings" | "strategies" | "optimization" | "growth";
 
 export default function MoneyAffairsPage() {
+  const supabase = createClient();
   const [activeSection, setActiveSection] = useState<MoneySection>("opportunities");
-  const [posts, setPosts] = useState<Post[]>(moneyPosts);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
 
@@ -20,30 +38,89 @@ export default function MoneyAffairsPage() {
     growth: { title: "Business Growth", description: "Techniques for scaling your business and reaching more customers." }
   };
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchPosts();
+  }, [activeSection]);
+
+  async function fetchPosts() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        profiles:author_id (full_name),
+        comments (id)
+      `)
+      .eq('category', 'money')
+      .eq('subcategory', activeSection)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching posts:', error);
+    } else {
+      const mappedPosts = (data || []).map((post: any) => ({
+        ...post,
+        commentCount: post.comments?.length || 0
+      }));
+      setPosts(mappedPosts);
+    }
+    setLoading(false);
+  }
+
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostTitle.trim() || !newPostContent.trim()) return;
 
-    const newPost: Post = {
-      id: Date.now(),
-      author: "You",
-      title: newPostTitle,
-      content: newPostContent,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      section: activeSection,
-      comments: [],
-    };
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      console.error('Auth error:', authError);
+      alert("You must be logged in to create a post.");
+      return;
+    }
+    if (!user) {
+      alert("You must be logged in to create a post.");
+      return;
+    }
 
-    const updatedPosts = [newPost, ...posts];
-    setPosts(updatedPosts);
-    // In a real app, this would be a database update
-    moneyPosts.unshift(newPost);
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
 
-    setNewPostTitle("");
-    setNewPostContent("");
+    if (profileError) {
+      console.error('Profile error:', profileError);
+      alert("Could not find your profile. Please try logging out and back in.");
+      return;
+    }
+    if (!profile) {
+      alert("Profile not found. Please complete your profile setup.");
+      return;
+    }
+
+    const { data: insertedPost, error } = await supabase
+      .from('posts')
+      .insert([
+        {
+          author_id: profile.id,
+          title: newPostTitle,
+          content: newPostContent,
+          category: 'money',
+          subcategory: activeSection
+        }
+      ])
+      .select();
+
+    if (error) {
+      console.error('Error creating post:', error);
+      alert(`Failed to create post: ${error.message}`);
+    } else {
+      console.log('Post created successfully:', insertedPost);
+      setNewPostTitle("");
+      setNewPostContent("");
+      fetchPosts();
+    }
   };
-
-  const filteredPosts = posts.filter(post => post.section === activeSection);
 
   return (
     <Sidebar>
@@ -102,31 +179,43 @@ export default function MoneyAffairsPage() {
             </form>
           </motion.div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {filteredPosts.map((post) => (
-              <Link key={post.id} href={`/money/${post.id}`}>
-                <motion.div
-                  whileHover={{ y: -2 }}
-                  className="glass-panel p-5 border border-[color:var(--border-subtle)] hover:border-[color:var(--accent-primary)] transition-all bg-[color:var(--background-overlay)]"
-                >
-                  <div className="flex items-center justify-between text-xs text-[color:var(--text-secondary)] mb-3">
-                    <span className="font-bold">{post.author}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        {post.comments.length}
-                      </span>
-                      <span>{post.timestamp}</span>
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-[color:var(--text-primary)]">{post.title}</h3>
-                  <p className="mt-2 text-sm line-clamp-2 text-[color:var(--text-secondary)]">{post.content}</p>
-                </motion.div>
-              </Link>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--accent-primary)] border-t-transparent" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {posts.length === 0 ? (
+                <div className="text-center py-20 border-2 border-dashed border-[color:var(--border-subtle)] rounded-2xl">
+                  <p className="text-[color:var(--text-tertiary)] italic">No discussions here yet. Start the conversation!</p>
+                </div>
+              ) : (
+                posts.map((post: any) => (
+                  <Link key={post.id} href={`/money/${post.id}`}>
+                    <motion.div
+                      whileHover={{ y: -2 }}
+                      className="glass-panel p-5 border border-[color:var(--border-subtle)] hover:border-[color:var(--accent-primary)] transition-all bg-[color:var(--background-overlay)]"
+                    >
+                      <div className="flex items-center justify-between text-xs text-[color:var(--text-secondary)] mb-3">
+                        <span className="font-bold">{post.profiles?.full_name || 'Anonymous Founder'}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1">
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            {post.commentCount}
+                          </span>
+                          <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <h3 className="text-lg font-semibold text-[color:var(--text-primary)]">{post.title}</h3>
+                      <p className="mt-2 text-sm line-clamp-2 text-[color:var(--text-secondary)]">{post.content}</p>
+                    </motion.div>
+                  </Link>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Sidebar>
