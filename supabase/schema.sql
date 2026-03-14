@@ -1,10 +1,14 @@
 -- Supabase schema for Founder Hub
 
+-- 1. Create Tables
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null unique,
+  user_id uuid not null unique references auth.users(id) on delete cascade,
   full_name text,
   avatar_url text,
+  industry text,
+  mrr numeric,
+  role text,
   created_at timestamptz default now()
 );
 
@@ -37,23 +41,53 @@ create table if not exists public.messages (
   created_at timestamptz default now()
 );
 
+create table if not exists public.private_messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references public.profiles(id) on delete cascade,
+  recipient_id uuid not null references public.profiles(id) on delete cascade,
+  content text not null,
+  is_read boolean default false,
+  created_at timestamptz default now()
+);
+
+-- 2. Enable RLS
 alter table public.profiles enable row level security;
 alter table public.companies enable row level security;
 alter table public.metrics enable row level security;
 alter table public.messages enable row level security;
+alter table public.private_messages enable row level security;
 
+-- 3. Setup Policies (DROP IF EXISTS before CREATE to avoid "already exists" errors)
+
+-- Profiles
+drop policy if exists "Individuals can view own profile" on public.profiles;
 create policy "Individuals can view own profile"
   on public.profiles for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Individuals can update own profile" on public.profiles;
 create policy "Individuals can update own profile"
   on public.profiles for update
   using (auth.uid() = user_id);
 
+drop policy if exists "Individuals can insert own profile" on public.profiles;
+create policy "Individuals can insert own profile"
+  on public.profiles for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Authenticated can view all profiles" on public.profiles;
+create policy "Authenticated can view all profiles"
+  on public.profiles for select
+  using (auth.role() = 'authenticated');
+
+-- Companies
+drop policy if exists "Owners manage their companies" on public.companies;
 create policy "Owners manage their companies"
   on public.companies for all
   using (auth.uid() = owner_id);
 
+-- Metrics
+drop policy if exists "Owners manage their metrics" on public.metrics;
 create policy "Owners manage their metrics"
   on public.metrics for all
   using (
@@ -62,11 +96,62 @@ create policy "Owners manage their metrics"
     )
   );
 
+-- Messages
+drop policy if exists "Authenticated can read war room messages" on public.messages;
 create policy "Authenticated can read war room messages"
   on public.messages for select
   using (auth.role() = 'authenticated');
 
+drop policy if exists "Authenticated can insert own messages" on public.messages;
 create policy "Authenticated can insert own messages"
   on public.messages for insert
   with check (auth.role() = 'authenticated');
 
+-- Private Messages
+drop policy if exists "Users can view their own private messages" on public.private_messages;
+create policy "Users can view their own private messages"
+  on public.private_messages for select
+  using (
+    auth.uid() in (
+      select user_id from public.profiles where id = sender_id
+      union
+      select user_id from public.profiles where id = recipient_id
+    )
+  );
+
+drop policy if exists "Users can send private messages" on public.private_messages;
+create policy "Users can send private messages"
+  on public.private_messages for insert
+  with check (
+    auth.uid() in (
+      select user_id from public.profiles where id = sender_id
+    )
+  );
+
+drop policy if exists "Users can update their received messages" on public.private_messages;
+create policy "Users can update their received messages"
+  on public.private_messages for update
+  using (
+    auth.uid() in (
+      select user_id from public.profiles where id = recipient_id
+    )
+  );
+
+-- 4. Automation: Create profile on user signup
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (user_id, full_name)
+  values (new.id, split_part(new.email, '@', 1))
+  on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();

@@ -1,11 +1,10 @@
 import { Sidebar } from "@/components/sidebar";
-import { BenchmarkDashboard } from "@/components/benchmark-dashboard";
+import { HomeDashboard } from "@/components/home-dashboard";
 
 export default function Home() {
   return (
     <Sidebar>
-      <BenchmarkDashboard />
+      <HomeDashboard />
     </Sidebar>
   );
 }
-

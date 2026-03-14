@@ -3,18 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-const seedMessages = [
-  {
-    id: 1,
-    profile: { full_name: 'John Doe' },
-    content: 'Hey everyone!',
-  },
-  {
-    id: 2,
-    profile: { full_name: 'Jane Doe' },
-    content: 'Hi John!',
-  },
-]
+const seedMessages: any[] = []
 
 export function ChatRoom() {
   const searchParams = useSearchParams()
@@ -47,17 +36,23 @@ export function ChatRoom() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className="flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-gray-300" />
-              <div>
-                <p className="font-semibold">{msg.profile?.full_name || 'Anonymous'}</p>
-                <p className="text-gray-700">{msg.content}</p>
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-[color:var(--text-tertiary)]">
+            <p>No messages yet. Start the conversation!</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((msg) => (
+              <div key={msg.id} className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-gray-300" />
+                <div>
+                  <p className="font-semibold">{msg.profile?.full_name || 'Anonymous'}</p>
+                  <p className="text-gray-700">{msg.content}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
       <div className="border-t p-4">
         <form onSubmit={handleSendMessage} className="flex gap-2">
