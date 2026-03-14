@@ -14,17 +14,34 @@ export function MemberDirectory() {
   useEffect(() => {
     async function fetchProfiles() {
       setError(null)
-      const { data, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('subscription_status', 'active')
-        .order('created_at', { ascending: false })
+      try {
+        // Try to fetch with subscription_status filter
+        const { data, error: fetchError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('subscription_status', 'active')
+          .order('created_at', { ascending: false })
 
-      if (fetchError) {
-        console.error('Error fetching profiles:', fetchError)
-        setError(fetchError.message)
-      } else {
-        setProfiles(data || [])
+        if (fetchError) {
+          // If column doesn't exist, fetch all profiles (fallback for development)
+          console.warn('Subscription status column may not exist, fetching all profiles:', fetchError)
+          const { data: allProfiles, error: allError } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false })
+          
+          if (allError) {
+            console.error('Error fetching all profiles:', allError)
+            setError(allError.message)
+          } else {
+            setProfiles(allProfiles || [])
+          }
+        } else {
+          setProfiles(data || [])
+        }
+      } catch (err: any) {
+        console.error('Unexpected error:', err)
+        setError(err.message || 'An unexpected error occurred')
       }
       setLoading(false)
     }

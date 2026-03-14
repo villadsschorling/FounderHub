@@ -206,7 +206,11 @@ create policy "Users can update their received messages"
     )
   );
 
--- 4. Automation: Create profile on user signup
+-- 4. Add subscription_status column if it doesn't exist
+alter table public.profiles 
+add column if not exists subscription_status text default 'inactive' check (subscription_status in ('active', 'inactive'));
+
+-- 5. Automation: Create profile on user signup
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -232,9 +236,10 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- 5. Update existing owner profile to have active subscription
+-- 6. Update existing owner profile to have active subscription
 update public.profiles 
 set subscription_status = 'active'
 where user_id in (
   select id from auth.users where lower(email) = 'founderhub26@gmail.com'
 );
+
