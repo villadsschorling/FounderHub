@@ -1,12 +1,14 @@
 'use client'
 
 import { Sidebar } from "@/components/sidebar";
+import { PaywallBlur } from "@/components/paywall-blur";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase";
 
-export default function SocialPostDetailPage() {
+function SocialPostDetailContent() {
   const { id } = useParams();
   const router = useRouter();
   const supabase = createClient();
@@ -213,5 +215,27 @@ export default function SocialPostDetailPage() {
         </div>
       </div>
     </Sidebar>
+  );
+}
+
+export default function SocialPostDetailPage() {
+  const { subscriptionStatus, loading: subscriptionLoading } = useSubscription();
+  
+  if (subscriptionLoading) {
+    return (
+      <Sidebar>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-[color:var(--text-tertiary)] animate-pulse">Loading...</p>
+        </div>
+      </Sidebar>
+    );
+  }
+
+  const showPaywall = subscriptionStatus === 'inactive';
+  
+  return (
+    <PaywallBlur isActive={showPaywall}>
+      <SocialPostDetailContent />
+    </PaywallBlur>
   );
 }
