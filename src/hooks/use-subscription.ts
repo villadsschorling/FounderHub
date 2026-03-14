@@ -17,7 +17,7 @@ export function useSubscription() {
       }
 
       // Check if this is the owner (you) - email check for grandfather rule
-      const isOwner = user.email === 'Founderhub26@gmail.com';
+      const isOwner = user.email?.toLowerCase() === 'founderhub26@gmail.com';
       
       if (isOwner) {
         // Owner always has full access

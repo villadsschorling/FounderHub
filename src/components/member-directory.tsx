@@ -17,6 +17,7 @@ export function MemberDirectory() {
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
+        .eq('subscription_status', 'active')
         .order('created_at', { ascending: false })
 
       if (fetchError) {

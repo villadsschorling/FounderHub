@@ -6,8 +6,11 @@ import { useState, useEffect } from 'react'
 import { Sidebar } from "@/components/sidebar"
 import { createClient } from '@/lib/supabase'
 import { motion } from 'framer-motion'
+import { PaywallBlur } from "@/components/paywall-blur";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export default function ProfilePage() {
+  const { subscriptionStatus, loading: subscriptionLoading } = useSubscription();
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
@@ -81,7 +84,7 @@ export default function ProfilePage() {
     setUpdating(false)
   }
 
-  if (loading) {
+  if (subscriptionLoading || loading) {
     return (
       <Sidebar>
         <div className="flex flex-col items-center justify-center h-full text-[color:var(--text-tertiary)]">
@@ -92,74 +95,78 @@ export default function ProfilePage() {
     )
   }
 
+  const showPaywall = subscriptionStatus === 'inactive';
+  
   return (
-    <Sidebar>
-      <div className="max-w-2xl mx-auto py-10">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-panel p-8 border border-[color:var(--border-subtle)]"
-        >
-          <div className="flex items-center gap-6 mb-8 pb-8 border-b border-[color:var(--border-subtle)]">
-            <div className="h-20 w-20 rounded-full bg-[color:var(--background-overlay)] flex items-center justify-center font-bold text-3xl border border-[color:var(--border-subtle)] text-[color:var(--accent-primary)]">
-              {fullName ? fullName[0] : '?'}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">My Profile</h1>
-              <p className="text-sm text-[color:var(--text-secondary)]">Manage your personal information and hub settings.</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleUpdate} className="space-y-6">
-            <div className="space-y-2">
-              <label className="block text-xs font-medium uppercase tracking-wide text-[color:var(--text-secondary)]">
-                Display Name
-              </label>
-              <div className="input-shell px-4 py-2.5">
-                <input
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-transparent text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)] focus:outline-none"
-                />
+    <PaywallBlur isActive={showPaywall}>
+      <Sidebar>
+        <div className="max-w-2xl mx-auto py-10">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-panel p-8 border border-[color:var(--border-subtle)]"
+          >
+            <div className="flex items-center gap-6 mb-8 pb-8 border-b border-[color:var(--border-subtle)]">
+              <div className="h-20 w-20 rounded-full bg-[color:var(--background-overlay)] flex items-center justify-center font-bold text-3xl border border-[color:var(--border-subtle)] text-[color:var(--accent-primary)]">
+                {fullName ? fullName[0] : '?'}
               </div>
-              <p className="text-[10px] text-[color:var(--text-tertiary)]">This is how other founders will see you in the hub.</p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-medium uppercase tracking-wide text-[color:var(--text-secondary)]">
-                Email Address
-              </label>
-              <div className="input-shell px-4 py-2.5 bg-gray-50/50 opacity-60">
-                <input
-                  type="email"
-                  value={profile?.email || profile?.user_email || 'Authenticated user'}
-                  disabled
-                  className="w-full bg-transparent text-sm text-[color:var(--text-primary)] cursor-not-allowed focus:outline-none"
-                />
+              <div>
+                <h1 className="text-2xl font-bold text-[color:var(--text-primary)]">My Profile</h1>
+                <p className="text-sm text-[color:var(--text-secondary)]">Manage your personal information and hub settings.</p>
               </div>
-              <p className="text-[10px] text-[color:var(--text-tertiary)]">Your email address is managed through authentication settings.</p>
             </div>
 
-            {message.text && (
-              <div className={`text-xs p-3 rounded-md ${message.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
-                {message.text}
+            <form onSubmit={handleUpdate} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-xs font-medium uppercase tracking-wide text-[color:var(--text-secondary)]">
+                  Display Name
+                </label>
+                <div className="input-shell px-4 py-2.5">
+                  <input
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-transparent text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-tertiary)] focus:outline-none"
+                  />
+                </div>
+                <p className="text-[10px] text-[color:var(--text-tertiary)]">This is how other founders will see you in the hub.</p>
               </div>
-            )}
 
-            <div className="pt-4">
-              <button
-                type="submit"
-                disabled={updating}
-                className="btn-primary w-full py-2.5 text-sm font-bold disabled:opacity-50 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
-              >
-                {updating ? 'Saving Changes...' : 'Save Profile Changes'}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </div>
-    </Sidebar>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium uppercase tracking-wide text-[color:var(--text-secondary)]">
+                  Email Address
+                </label>
+                <div className="input-shell px-4 py-2.5 bg-gray-50/50 opacity-60">
+                  <input
+                    type="email"
+                    value={profile?.email || profile?.user_email || 'Authenticated user'}
+                    disabled
+                    className="w-full bg-transparent text-sm text-[color:var(--text-primary)] cursor-not-allowed focus:outline-none"
+                  />
+                </div>
+                <p className="text-[10px] text-[color:var(--text-tertiary)]">Your email address is managed through authentication settings.</p>
+              </div>
+
+              {message.text && (
+                <div className={`text-xs p-3 rounded-md ${message.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
+                  {message.text}
+                </div>
+              )}
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="btn-primary w-full py-2.5 text-sm font-bold disabled:opacity-50 transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
+                >
+                  {updating ? 'Saving Changes...' : 'Save Profile Changes'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      </Sidebar>
+    </PaywallBlur>
   )
 }

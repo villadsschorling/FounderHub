@@ -213,8 +213,15 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (user_id, full_name)
-  values (new.id, split_part(new.email, '@', 1))
+  insert into public.profiles (user_id, full_name, subscription_status)
+  values (
+    new.id, 
+    split_part(new.email, '@', 1),
+    case 
+      when lower(new.email) = 'founderhub26@gmail.com' then 'active'
+      else 'inactive'
+    end
+  )
   on conflict (user_id) do nothing;
   return new;
 end;
@@ -224,3 +231,10 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- 5. Update existing owner profile to have active subscription
+update public.profiles 
+set subscription_status = 'active'
+where user_id in (
+  select id from auth.users where lower(email) = 'founderhub26@gmail.com'
+);
