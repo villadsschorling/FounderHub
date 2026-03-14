@@ -221,9 +221,13 @@ export default function WarRoomPage() {
   
   return (
     <Sidebar>
-      <PaywallBlur isActive={showPaywall}>
+      {showPaywall ? (
+        <PaywallBlur isActive={true}>
+          <WarRoomContent />
+        </PaywallBlur>
+      ) : (
         <WarRoomContent />
-      </PaywallBlur>
+      )}
     </Sidebar>
   );
 }
