@@ -125,8 +125,7 @@ function MoneyContent() {
   };
 
   return (
-    <Sidebar>
-      <div className="flex flex-col gap-8 max-w-5xl mx-auto pb-20">
+    <div className="flex flex-col gap-8 max-w-5xl mx-auto pb-20">
         <header>
           <h1 className="text-3xl font-bold text-[color:var(--text-primary)]">Money Related Affairs</h1>
           <p className="mt-2 text-[color:var(--text-secondary)]">Optimize your finances, strategize your growth, and find new opportunities.</p>
@@ -220,7 +219,6 @@ function MoneyContent() {
           )}
         </div>
       </div>
-    </Sidebar>
   );
 }
 
@@ -240,8 +238,14 @@ export default function MoneyAffairsPage() {
   const showPaywall = subscriptionStatus === 'inactive';
   
   return (
-    <PaywallBlur isActive={showPaywall}>
-      <MoneyContent />
-    </PaywallBlur>
+    <Sidebar>
+      {showPaywall ? (
+        <PaywallBlur isActive={true}>
+          <MoneyContent />
+        </PaywallBlur>
+      ) : (
+        <MoneyContent />
+      )}
+    </Sidebar>
   );
 }

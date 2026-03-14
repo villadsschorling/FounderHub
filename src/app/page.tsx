@@ -21,10 +21,14 @@ export default function Home() {
   const showPaywall = subscriptionStatus === 'inactive';
   
   return (
-    <PaywallBlur isActive={showPaywall}>
-      <Sidebar>
+    <Sidebar>
+      {showPaywall ? (
+        <PaywallBlur isActive={true}>
+          <HomeDashboard />
+        </PaywallBlur>
+      ) : (
         <HomeDashboard />
-      </Sidebar>
-    </PaywallBlur>
+      )}
+    </Sidebar>
   );
 }

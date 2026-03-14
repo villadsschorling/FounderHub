@@ -21,10 +21,14 @@ export default function Directory() {
   const showPaywall = subscriptionStatus === 'inactive';
   
   return (
-    <PaywallBlur isActive={showPaywall}>
-      <Sidebar>
+    <Sidebar>
+      {showPaywall ? (
+        <PaywallBlur isActive={true}>
+          <MemberDirectory />
+        </PaywallBlur>
+      ) : (
         <MemberDirectory />
-      </Sidebar>
-    </PaywallBlur>
+      )}
+    </Sidebar>
   );
 }
