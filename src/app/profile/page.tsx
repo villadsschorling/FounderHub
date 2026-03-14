@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { Sidebar } from "@/components/sidebar"
 import { createClient } from '@/lib/supabase'
@@ -24,17 +26,17 @@ export default function ProfilePage() {
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .maybeSingle() // use maybeSingle to avoid error if not found
+          .maybeSingle()
 
         if (error) {
           console.error('Error fetching profile:', error)
           setMessage({ type: 'error', text: 'Failed to load profile data.' })
         } else if (data) {
-          console.log('Profile found:', data)
+          console.log('Profile found in DB:', data)
           setProfile({ ...data, user_email: user.email })
           setFullName(data.full_name || '')
         } else {
-          console.log('No profile record found for user.')
+          console.log('No profile row found for user ID:', user.id)
           setProfile({ user_email: user.email })
         }
       }

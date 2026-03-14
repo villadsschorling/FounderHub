@@ -142,15 +142,17 @@ export default function LoginPage() {
       .from('profiles')
       .update({
         industry: finalIndustry,
-        mrr: parseInt(mrr),
+        mrr: isNaN(parseInt(mrr)) ? 0 : parseInt(mrr),
         role,
         full_name: currentProfile?.full_name || email.split('@')[0]
       })
       .eq('user_id', user.id)
 
     if (error) {
+      console.error('Final join save error:', error)
       alert("Error saving your profile: " + error.message)
     } else {
+      console.log('Profile saved successfully, entering hub...')
       router.push('/')
     }
     setLoading(false)
