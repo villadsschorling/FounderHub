@@ -132,13 +132,19 @@ export default function LoginPage() {
 
     const finalIndustry = isOtherIndustry ? customIndustry : industry
 
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
     const { error } = await supabase
       .from('profiles')
       .update({
         industry: finalIndustry,
         mrr: parseInt(mrr),
         role,
-        full_name: email.split('@')[0]
+        full_name: currentProfile?.full_name || email.split('@')[0]
       })
       .eq('user_id', user.id)
 

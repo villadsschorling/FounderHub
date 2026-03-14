@@ -17,17 +17,25 @@ export default function ProfilePage() {
     async function getProfile() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
+        // Log for debugging
+        console.log('Fetching profile for user:', user.id)
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle() // use maybeSingle to avoid error if not found
 
         if (error) {
           console.error('Error fetching profile:', error)
-        } else {
+          setMessage({ type: 'error', text: 'Failed to load profile data.' })
+        } else if (data) {
+          console.log('Profile found:', data)
           setProfile({ ...data, user_email: user.email })
           setFullName(data.full_name || '')
+        } else {
+          console.log('No profile record found for user.')
+          setProfile({ user_email: user.email })
         }
       }
       setLoading(false)
@@ -42,18 +50,31 @@ export default function ProfilePage() {
     setMessage({ type: '', text: '' })
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setMessage({ type: 'error', text: 'Session expired. Please log in again.' })
+      setUpdating(false)
+      return
+    }
+
+    const updatedName = fullName.trim()
+    if (!updatedName) {
+      setMessage({ type: 'error', text: 'Display name cannot be empty.' })
+      setUpdating(false)
+      return
+    }
 
     const { error } = await supabase
       .from('profiles')
-      .update({ full_name: fullName })
+      .update({ full_name: updatedName })
       .eq('user_id', user.id)
 
     if (error) {
+      console.error('Update error:', error)
       setMessage({ type: 'error', text: 'Error updating profile: ' + error.message })
     } else {
+      console.log('Update successful, refreshing local state...')
+      setProfile({ ...profile, full_name: updatedName })
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
-      setProfile({ ...profile, full_name: fullName })
     }
     setUpdating(false)
   }

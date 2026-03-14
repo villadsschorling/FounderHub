@@ -1,6 +1,10 @@
 import { createBrowserClient } from '@supabase/ssr'
 
+let client: any = null
+
 export function createClient() {
+  if (client) return client
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -19,5 +23,6 @@ export function createClient() {
     console.log('Hub attempting to reach Supabase at:', supabaseUrl)
   }
 
-  return createBrowserClient(supabaseUrl, supabaseKey)
+  client = createBrowserClient(supabaseUrl, supabaseKey)
+  return client
 }
