@@ -15,7 +15,7 @@ const navItems: { href: string; label: string; hasIndicator?: boolean }[] = [
   { href: "/social", label: "Social" },
   { href: "/private", label: "Private Chat", hasIndicator: true },
   { href: "/profile", label: "My Profile" },
-  { href: "/subscription", label: "Your Subscription" },
+  { href: "/billing", label: "Billing" },
 ];
 
 export function Sidebar({ children }: { children: ReactNode }) {

@@ -9,6 +9,7 @@ create table if not exists public.profiles (
   industry text,
   mrr numeric,
   role text,
+  subscription_status text default 'inactive' check (subscription_status in ('active', 'inactive')),
   created_at timestamptz default now()
 );
 

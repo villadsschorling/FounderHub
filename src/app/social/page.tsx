@@ -1,6 +1,8 @@
 'use client'
 
 import { Sidebar } from "@/components/sidebar";
+import { PaywallBlur } from "@/components/paywall-blur";
+import { useSubscription } from "@/hooks/use-subscription";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -22,7 +24,7 @@ type Post = {
 
 type SocialSection = "founder-retreats" | "meetups" | "collaborations" | "social-lounge" | "success-stories";
 
-export default function SocialPage() {
+function SocialContent() {
   const supabase = createClient();
   const [activeSection, setActiveSection] = useState<SocialSection>("founder-retreats");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -219,5 +221,27 @@ export default function SocialPage() {
         </div>
       </div>
     </Sidebar>
+  );
+}
+
+export default function SocialPage() {
+  const { subscriptionStatus, loading: subscriptionLoading } = useSubscription();
+  
+  if (subscriptionLoading) {
+    return (
+      <Sidebar>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-[color:var(--text-tertiary)] animate-pulse">Loading...</p>
+        </div>
+      </Sidebar>
+    );
+  }
+
+  const showPaywall = subscriptionStatus === 'inactive';
+  
+  return (
+    <PaywallBlur isActive={showPaywall}>
+      <SocialContent />
+    </PaywallBlur>
   );
 }
