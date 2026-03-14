@@ -27,7 +27,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     checkUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
       if (!session && pathname !== '/login') {
         router.push('/login')
       } else if (session && pathname === '/login') {

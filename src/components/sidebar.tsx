@@ -59,7 +59,7 @@ export function Sidebar({ children }: { children: ReactNode }) {
             .select('*', { count: 'exact', head: true })
             .eq('recipient_id', profile.id)
             .eq('is_read', false)
-            .then(({ count: newCount }) => {
+            .then(({ count: newCount }: { count: number | null }) => {
               setHasUnread((newCount || 0) > 0);
             });
         })
