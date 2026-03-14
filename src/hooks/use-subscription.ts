@@ -33,16 +33,9 @@ export function useSubscription() {
         .single();
 
       if (profile) {
-        // Grandfather rule: users created before today get active status
-        const profileCreatedAt = new Date(profile.created_at);
-        const today = new Date();
-        const isGrandfathered = profileCreatedAt < today;
-        
-        if (isGrandfathered) {
-          setSubscriptionStatus('active');
-        } else {
-          setSubscriptionStatus(profile.subscription_status || 'inactive');
-        }
+        // Use the subscription_status from the database
+        // No grandfather rule - users must have 'active' status in database
+        setSubscriptionStatus(profile.subscription_status || 'inactive');
       }
       setLoading(false);
     }

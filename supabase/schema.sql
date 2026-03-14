@@ -206,7 +206,7 @@ create policy "Users can update their received messages"
     )
   );
 
--- 4. Add subscription_status column if it doesn't exist
+-- 4. Add subscription_status column if it doesn't exist (safe for existing databases)
 alter table public.profiles 
 add column if not exists subscription_status text default 'inactive' check (subscription_status in ('active', 'inactive'));
 
@@ -242,4 +242,3 @@ set subscription_status = 'active'
 where user_id in (
   select id from auth.users where lower(email) = 'founderhub26@gmail.com'
 );
-
