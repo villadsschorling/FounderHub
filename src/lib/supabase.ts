@@ -5,13 +5,18 @@ export function createClient() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    // During build time, Next.js might try to pre-render pages.
-    // We return a dummy client to prevent build-time crashes, 
-    // but in production this will cause 'Failed to fetch' if keys are missing.
+    if (typeof window !== 'undefined') {
+      console.error('Supabase keys are missing in the browser environment!')
+    }
     return createBrowserClient(
       supabaseUrl || 'https://placeholder.supabase.co',
       supabaseKey || 'placeholder-key'
     )
+  }
+
+  // Diagnostic for DNS resolution issue
+  if (typeof window !== 'undefined') {
+    console.log('Hub attempting to reach Supabase at:', supabaseUrl)
   }
 
   return createBrowserClient(supabaseUrl, supabaseKey)

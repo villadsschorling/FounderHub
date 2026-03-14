@@ -26,7 +26,7 @@ export default function ProfilePage() {
         if (error) {
           console.error('Error fetching profile:', error)
         } else {
-          setProfile(data)
+          setProfile({ ...data, user_email: user.email })
           setFullName(data.full_name || '')
         }
       }
@@ -111,7 +111,7 @@ export default function ProfilePage() {
               <div className="input-shell px-4 py-2.5 bg-gray-50/50 opacity-60">
                 <input
                   type="email"
-                  value={profile?.email || 'Authenticated user'}
+                  value={profile?.email || profile?.user_email || 'Authenticated user'}
                   disabled
                   className="w-full bg-transparent text-sm text-[color:var(--text-primary)] cursor-not-allowed focus:outline-none"
                 />
